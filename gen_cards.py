@@ -1,40 +1,55 @@
+import time
 import genanki
 import requests
 from pathlib import Path
+from dotenv import load_dotenv
+import os
+import openai
 
-# Pixabay API key (replace with your key if using Pixabay)
-PIXABAY_API_KEY = "your_pixabay_api_key"
+load_dotenv()
 
-# Directory to save images
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+PIXABAY_API_KEY = os.getenv("PIXABAY_API_KEY")
+
+openai.api_key = OPENAI_API_KEY
+
 image_dir = Path("nepali_images")
 image_dir.mkdir(exist_ok=True)
 
 REQUESTS_PER_MINUTE = 100
 DELAY_BETWEEN_REQUESTS = 60 / REQUESTS_PER_MINUTE
 
-# Function to fetch an image from Pixabay
-def fetch_image(word):
+
+def fetch_image(nepali_word):
     try:
-        url = f"https://pixabay.com/api/?key={PIXABAY_API_KEY}&q={word}&lang=ne&image_type=photo&per_page=3"
+        translation = translator.translate(nepali_word, src='ne', dest='en')
+        english_word = translation.text
+        print(f"Translated '{nepali_word}' to '{english_word}'")
+
+        # Use the English translation to search for images
+        url = f"https://pixabay.com/api/?key={PIXABAY_API_KEY}&q={english_word}&image_type=photo&per_page=3"
         response = requests.get(url)
         response.raise_for_status()
         data = response.json()
         if data['hits']:
+            # Download the first relevant image
             image_url = data['hits'][0]['largeImageURL']
-            image_path = image_dir / f"{word}.jpg"
+            image_path = image_dir / f"{english_word.replace(' ', '_')}.jpg"
             img_data = requests.get(image_url).content
             with open(image_path, 'wb') as handler:
                 handler.write(img_data)
             return str(image_path)
+        else:
+            print(f"No images found for '{english_word}'")
+            return None
     except Exception as e:
-        print(f"Image not found for {word}: {e}")
+        print(f"Error fetching image for '{nepali_word}': {e}")
         return None
 
-# Function to generate translations, sentences, and fetch image
 def generate_translation_sentence_image(nepali_word):
     prompt = f"""You are a language expert. For the Nepali word "{nepali_word}", provide:
     1. Its meaning in English.
-    2. A sample sentence in Nepali where the word is used, with the word **bolded**.
+    2. A simple sample sentence in Nepali where the word is used, with the word **bolded**.
     3. The same sentence romanized, also with the word **bolded**.
     4. Translate the Nepali sentence into English, preserving the meaning."""
     
@@ -56,7 +71,7 @@ def generate_translation_sentence_image(nepali_word):
         print(f"Error generating for {nepali_word}: {e}")
         return "N/A", "N/A", "N/A", "N/A", None
 
-# Define the Anki model
+# Anki model
 model = genanki.Model(
     1607392319,
     'Nepali Words Model',
@@ -87,11 +102,9 @@ deck = genanki.Deck(
     'Nepali 1k'
 )
 
-# Load the words from the text file
 with open('1000-most-common-nepali-words.txt', 'r', encoding='utf-8') as file:
     words = file.readlines()
 
-# Generate cards for each word
 for word in words:
     nepali_word = word.strip()
     english, nepali_sentence, romanized_sentence, english_sentence, image_path = generate_translation_sentence_image(nepali_word)
@@ -103,11 +116,9 @@ for word in words:
     )
     deck.add_note(note)
 
-# Save the deck
 output_file = 'nepali_vocabulary_with_images.apkg'
 package = genanki.Package(deck)
 
-# Include media (images)
 if image_dir.exists():
     package.media_files = list(image_dir.glob("*.jpg"))
 
