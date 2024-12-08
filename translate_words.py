@@ -1,7 +1,6 @@
 from google.cloud import translate_v2 as translate
 import os
 
-# Set the environment variable for the Google API credentials
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = r"C:\Users\rvand\Downloads\anki-translation-442303-7b1c82eb3428.json"
 
 

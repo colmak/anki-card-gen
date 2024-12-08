@@ -1,2 +1,7 @@
 .venv
 .env
+media
+*.apkg
+test.py
+output.mp3
+Nepali-1K.apkg
