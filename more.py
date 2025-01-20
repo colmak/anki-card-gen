@@ -7,12 +7,11 @@ from elevenlabs import ElevenLabs
 load_dotenv()
 ELEVENLABS_API_KEY = os.getenv('ELEVENLABS_API_KEY')
 
-
 eleven_client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
 
 base_audio_dir = Path(r"C:\anki_audio")
-question_audio_dir = base_audio_dir / "questions"
-answer_audio_dir = base_audio_dir / "answers"
+question_audio_dir = base_audio_dir / "questions2"
+answer_audio_dir = base_audio_dir / "answers2"
 question_audio_dir.mkdir(parents=True, exist_ok=True)
 answer_audio_dir.mkdir(parents=True, exist_ok=True)
 
@@ -124,7 +123,6 @@ qa_data = [
     },
 ]
 
-
 def generate_audio(text, filename, directory):
     audio_path = directory / filename
 
@@ -150,7 +148,6 @@ def generate_audio(text, filename, directory):
         print(f"Error generating audio for '{text}': {e}")
         return ""
 
-
 def create_deck(deck_id, deck_name, model, data, media_files, audio_dirs):
     deck = genanki.Deck(deck_id, deck_name)
 
@@ -165,9 +162,10 @@ def create_deck(deck_id, deck_name, model, data, media_files, audio_dirs):
             model=model,
             fields=[
                 entry["question_nep"],
-                entry["answer_nep"],
-                entry["transliteration"],
+                entry["transliteration"].split("\n")[0],
                 entry["question_eng"],
+                entry["answer_nep"],
+                entry["transliteration"].split("\n")[1],
                 entry["answer_eng"],
                 question_audio,
                 answer_audio,
@@ -187,25 +185,22 @@ model = genanki.Model(
     "Nepali Q&A Model",
     fields=[
         {"name": "QuestionNepali"},
-        {"name": "AnswerNepali"},
-        {"name": "Transliteration"},
+        {"name": "TransliterationQ"},
         {"name": "QuestionEnglish"},
+        {"name": "AnswerNepali"},
+        {"name": "TransliterationAns"},
         {"name": "AnswerEnglish"},
         {"name": "QuestionAudio"},
         {"name": "AnswerAudio"},
     ],
     templates=[
         {
-            "name": "Question and Transliteration",
-            "qfmt": "{{QuestionNepali}}<br>{{Transliteration}}<br>{{QuestionAudio}}",
-            "afmt": "{{QuestionEnglish}}<br>{{AnswerNepali}}<br>{{AnswerEnglish}}<br>{{AnswerAudio}}",
-        },
-        {
             "name": "Q&A Format",
-            "qfmt": "{{QuestionNepali}}<br>{{QuestionAudio}}",
-            "afmt": "{{AnswerNepali}}<br>{{AnswerAudio}}",
+            "qfmt": "{{QuestionNepali}}<br>{{TransliterationQ}}<br>{{QuestionEnglish}}<br><br>{{AnswerNepali}}<br>{{TransliterationAns}}<br>{{AnswerEnglish}}<br>{{AnswerAudio}} {{QuestionAudio}}",
+            "afmt": "{{FrontSide}}<hr id=\"answer\">{{AnswerNepali}}<br>{{TransliterationAns}}<br>{{AnswerEnglish}}<br>{{AnswerAudio}}",
         },
     ],
+    css=".card { font-size: 5vw; }",
 )
 
 media_files = []
